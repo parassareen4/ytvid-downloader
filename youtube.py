@@ -1,28 +1,30 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import yt_dlp
 import os
-import uuid
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Allow frontend to communicate with the backend
+# CORS: Allow frontend to communicate with the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace "*" with your frontend URL for security
+    allow_origins=["*"],  # Change to frontend URL for better security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Define request model
 class DownloadRequest(BaseModel):
     url: str
     quality: str
 
-# Define quality formats for yt-dlp
+# Directory where files will be saved
+SAVE_PATH = "downloads"
+os.makedirs(SAVE_PATH, exist_ok=True)
+
+# Video quality formats for yt-dlp
 QUALITY_MAP = {
     "highest": "bestvideo+bestaudio/best",
     "1080p": "bestvideo[height=1080]+bestaudio/best",
@@ -30,21 +32,21 @@ QUALITY_MAP = {
     "audio": "bestaudio"
 }
 
+# Path to cookies.txt (Make sure you place it in the backend folder)
+COOKIES_PATH = "cookies.txt"
+
 @app.post("/download/")
 def download_video(request: DownloadRequest):
-    """Downloads a video/audio from YouTube and returns it to the frontend."""
+    """Downloads a video/audio from YouTube."""
     if request.quality not in QUALITY_MAP:
         raise HTTPException(status_code=400, detail="Invalid quality option.")
 
-    # Generate a unique filename
-    filename = f"{uuid.uuid4()}.mp4" if request.quality != "audio" else f"{uuid.uuid4()}.mp3"
-    file_path = os.path.join("downloads", filename)
-
     ydl_opts = {
         'format': QUALITY_MAP[request.quality],
-        'outtmpl': file_path,
+        'outtmpl': f"{SAVE_PATH}/%(title)s.%(ext)s",
         'merge_output_format': 'mp4' if request.quality != "audio" else 'mp3',
-        'postprocessors': []
+        'postprocessors': [],
+        'cookiefile': COOKIES_PATH  # Use YouTube cookies for authentication
     }
 
     if request.quality == "audio":
@@ -57,9 +59,6 @@ def download_video(request: DownloadRequest):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([request.url])
-
-        # Return the file for frontend download
-        return FileResponse(file_path, filename=os.path.basename(file_path), media_type="video/mp4")
-
+        return {"message": "Download started successfully!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
