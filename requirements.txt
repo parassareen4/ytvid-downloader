@@ -1,5 +1,9 @@
-fastapi
-uvicorn
-yt-dlp
-pydantic
-fastapi[all]  # Includes CORS and FileResponse dependencies
+fastapi==0.103.1
+uvicorn==0.23.2
+yt-dlp==2023.7.6
+pydantic==2.3.0
+python-multipart==0.0.6
+aiofiles==23.1.0
+ffmpeg-python==0.2.0
+asyncio==3.4.3
+shutil==1.7.0

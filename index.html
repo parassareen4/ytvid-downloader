@@ -1,26 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Download YouTube videos and audio easily with our fast downloader.">
-    <title>YouTube Downloader</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Download YouTube videos and audio easily with our fast downloader.">
+  <title>YouTube Downloader</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>YouTube Downloader</h1>
-        <p>Enter a YouTube video URL and choose quality:</p>
-        <input type="text" id="url" placeholder="Paste YouTube URL here...">
-        <select id="quality">
-            <option value="highest">Highest Quality</option>
-            <option value="1080p">1080p</option>
-            <option value="720p">720p</option>
-            <option value="audio">Audio Only (MP3)</option>
-        </select>
-        <button onclick="downloadVideo()">Download</button>
-        <p id="message"></p>
+  <div class="container">
+    <h1>YouTube Downloader</h1>
+    <p>Enter a YouTube video URL and choose quality:</p>
+    <input type="text" id="url" placeholder="Paste YouTube URL here...">
+    <select id="quality">
+      <option value="highest">Highest Quality</option>
+      <option value="1080p">1080p</option>
+      <option value="720p">720p</option>
+      <option value="audio">Audio Only (MP3)</option>
+    </select>
+    <div id="download-location">
+      <label for="download-path">Download Location:</label>
+      <input type="text" id="download-path" placeholder="Download path..." readonly>
+      <button id="choose-location">Choose Folder</button>
     </div>
-    <script src="script.js"></script>
+    <button id="download-btn">Download</button>
+    <p id="message"></p>
+    <div id="progress-container" style="display: none;">
+      <progress id="download-progress" value="0" max="100"></progress>
+      <span id="progress-text">0%</span>
+    </div>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
