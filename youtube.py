@@ -3,7 +3,20 @@ from pydantic import BaseModel
 import yt_dlp
 import os
 
+
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+# Allow frontend on Netlify to communicate with the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with your frontend URL for better security
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
+
 
 # Define request model
 class DownloadRequest(BaseModel):
