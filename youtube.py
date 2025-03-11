@@ -1,15 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import yt_dlp
 import os
+import glob
 
 app = FastAPI()
 
 # CORS: Allow frontend to communicate with the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to frontend URL for better security
+    allow_origins=["*"],  # Change this to your frontend URL for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,8 +38,8 @@ QUALITY_MAP = {
 COOKIES_PATH = "cookies.txt"
 
 @app.post("/download/")
-def download_video(request: DownloadRequest):
-    """Downloads a video/audio from YouTube."""
+def download_video(request: DownloadRequest, background_tasks: BackgroundTasks):
+    """Downloads a video/audio from YouTube and returns it as a file."""
     if request.quality not in QUALITY_MAP:
         raise HTTPException(status_code=400, detail="Invalid quality option.")
 
@@ -58,7 +60,15 @@ def download_video(request: DownloadRequest):
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([request.url])
-        return {"message": "Download started successfully!"}
+            info = ydl.extract_info(request.url, download=True)
+            filename = ydl.prepare_filename(info)
+
+            # Check for audio format and adjust extension
+            if request.quality == "audio":
+                filename = filename.rsplit(".", 1)[0] + ".mp3"
+
+        # Return the file as a response
+        return FileResponse(filename, filename=os.path.basename(filename), media_type="application/octet-stream")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
