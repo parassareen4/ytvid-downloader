@@ -1,48 +1,52 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import yt_dlp
+import os
 
-def download_video(url, save_path, quality="highest"):
-    formats = {
-        "highest": "bestvideo+bestaudio/best",
-        "1080p": "bestvideo[height=1080]+bestaudio/best",
-        "720p": "bestvideo[height=720]+bestaudio/best",
-        "audio": "bestaudio"  # Audio only
-    }
+app = FastAPI()
 
-    if quality not in formats:
-        print("Invalid quality option. Using highest quality.")
-        quality = "highest"
+# Define request model
+class DownloadRequest(BaseModel):
+    url: str
+    quality: str
+
+# Directory where files will be saved
+SAVE_PATH = "downloads"
+
+# Ensure the download folder exists
+os.makedirs(SAVE_PATH, exist_ok=True)
+
+# Define quality formats for yt-dlp
+QUALITY_MAP = {
+    "highest": "bestvideo+bestaudio/best",
+    "1080p": "bestvideo[height=1080]+bestaudio/best",
+    "720p": "bestvideo[height=720]+bestaudio/best",
+    "audio": "bestaudio"
+}
+
+@app.post("/download/")
+def download_video(request: DownloadRequest):
+    """Downloads a video/audio from YouTube."""
+    if request.quality not in QUALITY_MAP:
+        raise HTTPException(status_code=400, detail="Invalid quality option.")
 
     ydl_opts = {
-        'format': formats[quality],  
-        'outtmpl': f"{save_path}/%(title)s.%(ext)s",
-        'merge_output_format': 'mp4' if quality != "audio" else 'mp3',  # Ensure MP4 for video, MP3 for audio
+        'format': QUALITY_MAP[request.quality],
+        'outtmpl': f"{SAVE_PATH}/%(title)s.%(ext)s",
+        'merge_output_format': 'mp4' if request.quality != "audio" else 'mp3',
         'postprocessors': []
     }
 
-    # Add FFmpeg processor for audio conversion if only downloading audio
-    if quality == "audio":
+    if request.quality == "audio":
         ydl_opts['postprocessors'].append({
             'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',  # Change to 'm4a' if you prefer
+            'preferredcodec': 'mp3',
             'preferredquality': '192'
         })
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-
-# User inputs
-url = input("Enter YouTube URL: ")
-print("Select download option:\n1. Highest Quality\n2. 1080p\n3. 720p\n4. Audio Only")
-choice = input("Enter choice (1/2/3/4): ")
-
-quality_map = {
-    "1": "highest",
-    "2": "1080p",
-    "3": "720p",
-    "4": "audio"
-}
-
-quality = quality_map.get(choice, "highest")  # Default to highest if invalid input
-save_path = "saved"
-
-download_video(url, save_path, quality)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([request.url])
+        return {"message": "Download started successfully!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
