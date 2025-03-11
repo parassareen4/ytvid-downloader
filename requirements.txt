@@ -1,14 +1,5 @@
-# FastAPI and ASGI server
-fastapi==0.115.11
-uvicorn==0.23.2
-
-# CORS middleware for frontend communication
-email_validator==2.2.0
-pydantic==2.10.6
-pydantic-settings==2.8.1
-
-# yt-dlp for downloading YouTube videos
-yt-dlp==2025.2.19
-
-# Optional: If using requests for additional API calls
-requests==2.31.0
+fastapi
+uvicorn
+yt-dlp
+pydantic
+fastapi[all]  # Includes CORS and FileResponse dependencies
