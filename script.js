@@ -10,7 +10,7 @@ function downloadVideo() {
 
     messageBox.innerText = "Downloading... Please wait.";
 
-    fetch("http://127.0.0.1:8000/download/", {
+    fetch("https://ytvid-downloader.onrender.com/download/", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

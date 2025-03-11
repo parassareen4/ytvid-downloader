@@ -2,8 +2,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import yt_dlp
 import os
-
-
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -13,8 +11,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Replace "*" with your frontend URL for better security
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -22,12 +20,7 @@ app.add_middleware(
 class DownloadRequest(BaseModel):
     url: str
     quality: str
-
-# Directory where files will be saved
-SAVE_PATH = "downloads"
-
-# Ensure the download folder exists
-os.makedirs(SAVE_PATH, exist_ok=True)
+    save_path: str  # User-defined save path
 
 # Define quality formats for yt-dlp
 QUALITY_MAP = {
@@ -39,13 +32,20 @@ QUALITY_MAP = {
 
 @app.post("/download/")
 def download_video(request: DownloadRequest):
-    """Downloads a video/audio from YouTube."""
+    """Downloads a video/audio from YouTube to a user-specified directory."""
+    
     if request.quality not in QUALITY_MAP:
         raise HTTPException(status_code=400, detail="Invalid quality option.")
 
+    # Use the user-specified save path or default to 'downloads' folder
+    save_path = request.save_path.strip() or "downloads"
+
+    # Ensure the directory exists
+    os.makedirs(save_path, exist_ok=True)
+
     ydl_opts = {
         'format': QUALITY_MAP[request.quality],
-        'outtmpl': f"{SAVE_PATH}/%(title)s.%(ext)s",
+        'outtmpl': f"{save_path}/%(title)s.%(ext)s",
         'merge_output_format': 'mp4' if request.quality != "audio" else 'mp3',
         'postprocessors': []
     }
@@ -60,6 +60,6 @@ def download_video(request: DownloadRequest):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([request.url])
-        return {"message": "Download started successfully!"}
+        return {"message": f"Download started successfully! Saved to {save_path}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
