@@ -1,26 +1,26 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import yt_dlp
 import os
+import uuid
+
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Allow frontend on Netlify to communicate with the backend
+# Allow frontend to communicate with the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace "*" with your frontend URL for better security
+    allow_origins=["*"],  # Replace "*" with your frontend URL for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Define request model
 class DownloadRequest(BaseModel):
     url: str
     quality: str
-    save_path: str  # User-defined save path
 
 # Define quality formats for yt-dlp
 QUALITY_MAP = {
@@ -32,20 +32,17 @@ QUALITY_MAP = {
 
 @app.post("/download/")
 def download_video(request: DownloadRequest):
-    """Downloads a video/audio from YouTube to a user-specified directory."""
-    
+    """Downloads a video/audio from YouTube and returns it to the frontend."""
     if request.quality not in QUALITY_MAP:
         raise HTTPException(status_code=400, detail="Invalid quality option.")
 
-    # Use the user-specified save path or default to 'downloads' folder
-    save_path = request.save_path.strip() or "downloads"
-
-    # Ensure the directory exists
-    os.makedirs(save_path, exist_ok=True)
+    # Generate a unique filename
+    filename = f"{uuid.uuid4()}.mp4" if request.quality != "audio" else f"{uuid.uuid4()}.mp3"
+    file_path = os.path.join("downloads", filename)
 
     ydl_opts = {
         'format': QUALITY_MAP[request.quality],
-        'outtmpl': f"{save_path}/%(title)s.%(ext)s",
+        'outtmpl': file_path,
         'merge_output_format': 'mp4' if request.quality != "audio" else 'mp3',
         'postprocessors': []
     }
@@ -60,6 +57,9 @@ def download_video(request: DownloadRequest):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([request.url])
-        return {"message": f"Download started successfully! Saved to {save_path}"}
+
+        # Return the file for frontend download
+        return FileResponse(file_path, filename=os.path.basename(file_path), media_type="video/mp4")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
