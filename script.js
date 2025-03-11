@@ -27,7 +27,7 @@ function downloadVideo() {
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = downloadUrl;
-        a.download = "video.mp4"; // Adjust file extension accordingly
+        a.download = `video.${quality === "audio" ? "mp3" : "mp4"}`; // Set correct file extension
         document.body.appendChild(a);
         a.click();
         a.remove();
